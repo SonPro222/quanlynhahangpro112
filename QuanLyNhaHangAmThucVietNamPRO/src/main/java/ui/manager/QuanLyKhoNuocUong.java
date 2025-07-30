@@ -25,8 +25,12 @@ import java.awt.Image;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.net.URL;
+import java.sql.Date;
+import java.time.DayOfWeek;
 
 import java.time.LocalDate;
+import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -523,6 +527,245 @@ public class QuanLyKhoNuocUong extends javax.swing.JDialog {
 //            tblDanhSachNhapKhoHomNay.getColumnModel().getColumn(i).setCellRenderer(centerText);
 //        }
 //    }
+    //code em An
+    private void fillXuatKhoTheoLoc() {
+        DefaultTableModel model = (DefaultTableModel) tblXuatKho.getModel();
+        model.setRowCount(0);
+
+        String selected = cboLoc.getSelectedItem() != null ? cboLoc.getSelectedItem().toString() : "";
+        String locStr = txtLocNhap.getText().trim();
+
+        LocalDate today = LocalDate.now();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        String tuNgay = today.format(formatter);
+        String denNgay = today.format(formatter);
+
+        switch (selected) {
+            case "Hôm nay":
+                tuNgay = today.format(formatter);
+                denNgay = today.plusDays(1).format(formatter); // end = ngày mai
+                break;
+            case "Tuần này":
+                LocalDate monday = today.with(DayOfWeek.MONDAY);
+                LocalDate sunday = today.with(DayOfWeek.SUNDAY);
+                tuNgay = monday.format(formatter);
+                denNgay = sunday.format(formatter);
+                break;
+            case "Tháng này":
+                LocalDate firstDayOfMonth = today.withDayOfMonth(1);
+                LocalDate lastDayOfMonth = today.withDayOfMonth(today.lengthOfMonth());
+                tuNgay = firstDayOfMonth.format(formatter);
+                denNgay = lastDayOfMonth.format(formatter);
+                break;
+            case "Quý này":
+                int currentQuarter = (today.getMonthValue() - 1) / 3 + 1;
+                int startMonth = (currentQuarter - 1) * 3 + 1;
+                int endMonth = startMonth + 2;
+                LocalDate firstDayOfQuarter = LocalDate.of(today.getYear(), startMonth, 1);
+                LocalDate lastDayOfQuarter = LocalDate.of(today.getYear(), endMonth,
+                        YearMonth.of(today.getYear(), endMonth).lengthOfMonth());
+                tuNgay = firstDayOfQuarter.format(formatter);
+                denNgay = lastDayOfQuarter.format(formatter);
+                break;
+            case "Năm nay":
+                tuNgay = LocalDate.of(today.getYear(), 1, 1).format(formatter);
+                denNgay = LocalDate.of(today.getYear(), 12, 31).format(formatter);
+                break;
+            default:
+                if (!locStr.isEmpty()) {
+                    try {
+                        if (locStr.matches("\\d{4}-\\d{2}-\\d{2}")) {
+                            tuNgay = locStr;
+                            denNgay = locStr;
+                        } else if (locStr.matches("\\d{4}-\\d{2}")) {
+                            String[] parts = locStr.split("-");
+                            int year = Integer.parseInt(parts[0]);
+                            int month = Integer.parseInt(parts[1]);
+                            LocalDate firstDay = LocalDate.of(year, month, 1);
+                            LocalDate lastDay = firstDay.withDayOfMonth(firstDay.lengthOfMonth());
+                            tuNgay = firstDay.format(formatter);
+                            denNgay = lastDay.format(formatter);
+                        } else if (locStr.matches("\\d{4}")) {
+                            int year = Integer.parseInt(locStr);
+                            LocalDate firstDay = LocalDate.of(year, 1, 1);
+                            LocalDate lastDay = LocalDate.of(year, 12, 31);
+                            tuNgay = firstDay.format(formatter);
+                            denNgay = lastDay.format(formatter);
+                        } else {
+                            JOptionPane.showMessageDialog(this,
+                                    "Định dạng phải là yyyy hoặc yyyy-MM hoặc yyyy-MM-dd");
+                            return;
+                        }
+                    } catch (Exception e) {
+                        JOptionPane.showMessageDialog(this, "Ngày nhập không hợp lệ.");
+                        return;
+                    }
+                }
+                break;
+        }
+
+        if (tuNgay == null && denNgay == null) {
+            tuNgay = today.format(formatter);
+            denNgay = today.format(formatter);
+        }
+
+        LocalDate start = LocalDate.parse(tuNgay, formatter);
+        LocalDate end = LocalDate.parse(denNgay, formatter);
+
+        System.out.println("Lọc từ ngày: " + start + " đến ngày: " + end);
+
+        XuatKhoNuocUongDAOImpl dao = new XuatKhoNuocUongDAOImpl();
+        List<Object[]> allData = dao.getLichSuXuatKho();
+        List<Object[]> filtered = new ArrayList<>();
+
+        for (Object[] row : allData) {
+            LocalDate ngayXuatData = null;
+            if (row[3] != null) {
+                try {
+                    ngayXuatData = ((Date) row[3]).toLocalDate();
+                } catch (Exception e) {
+                    continue;
+                }
+            }
+
+            boolean matchNgay = ngayXuatData != null
+                    && (!ngayXuatData.isBefore(start))
+                    && (ngayXuatData.isBefore(end.plusDays(1))); // FIX
+
+            if (matchNgay) {
+                filtered.add(row);
+            }
+        }
+
+        for (Object[] row : filtered) {
+            model.addRow(new Object[]{
+                row[0], row[1], row[2], row[3], row[4], row[5]
+            });
+        }
+
+        if (filtered.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Không tìm thấy dữ liệu phù hợp.");
+        }
+    }
+
+    private void fillNhapKhoTheoLoc() {
+        DefaultTableModel model = (DefaultTableModel) tblChiTietNhapKho.getModel();
+        model.setRowCount(0); // Xóa dữ liệu cũ
+
+        String selected = cboLocNhap.getSelectedItem() != null ? cboLocNhap.getSelectedItem().toString() : "";
+        String locStr = txtLocNhap.getText().trim();
+
+        LocalDate today = LocalDate.now();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+        String tuNgay = today.format(formatter);
+        String denNgay = today.format(formatter);
+
+        try {
+            switch (selected) {
+                case "Hôm nay":
+                    tuNgay = today.format(formatter);
+                    denNgay = today.plusDays(1).format(formatter); // end = ngày mai
+                    break;
+                case "Tuần này":
+                    LocalDate monday = today.with(DayOfWeek.MONDAY);
+                    LocalDate sunday = today.with(DayOfWeek.SUNDAY);
+                    tuNgay = monday.format(formatter);
+                    denNgay = sunday.format(formatter);
+                    break;
+                case "Tháng này":
+                    LocalDate firstDayOfMonth = today.withDayOfMonth(1);
+                    LocalDate lastDayOfMonth = today.withDayOfMonth(today.lengthOfMonth());
+                    tuNgay = firstDayOfMonth.format(formatter);
+                    denNgay = lastDayOfMonth.format(formatter);
+                    break;
+                case "Quý này":
+                    int currentQuarter = (today.getMonthValue() - 1) / 3 + 1;
+                    int startMonth = (currentQuarter - 1) * 3 + 1;
+                    int endMonth = startMonth + 2;
+                    LocalDate firstDayOfQuarter = LocalDate.of(today.getYear(), startMonth, 1);
+                    LocalDate lastDayOfQuarter = LocalDate.of(today.getYear(), endMonth,
+                            YearMonth.of(today.getYear(), endMonth).lengthOfMonth());
+                    tuNgay = firstDayOfQuarter.format(formatter);
+                    denNgay = lastDayOfQuarter.format(formatter);
+                    break;
+                case "Năm nay":
+                    tuNgay = LocalDate.of(today.getYear(), 1, 1).format(formatter);
+                    denNgay = LocalDate.of(today.getYear(), 12, 31).format(formatter);
+                    break;
+                default:
+                    // Trường hợp nhập thủ công
+                    if (!locStr.isEmpty()) {
+                        if (locStr.matches("\\d{4}-\\d{2}-\\d{2}")) {
+                            tuNgay = locStr;
+                            denNgay = locStr;
+                        } else if (locStr.matches("\\d{4}-\\d{2}")) {
+                            String[] parts = locStr.split("-");
+                            int year = Integer.parseInt(parts[0]);
+                            int month = Integer.parseInt(parts[1]);
+                            LocalDate firstDay = LocalDate.of(year, month, 1);
+                            LocalDate lastDay = firstDay.withDayOfMonth(firstDay.lengthOfMonth());
+                            tuNgay = firstDay.format(formatter);
+                            denNgay = lastDay.format(formatter);
+                        } else if (locStr.matches("\\d{4}")) {
+                            int year = Integer.parseInt(locStr);
+                            LocalDate firstDay = LocalDate.of(year, 1, 1);
+                            LocalDate lastDay = LocalDate.of(year, 12, 31);
+                            tuNgay = firstDay.format(formatter);
+                            denNgay = lastDay.format(formatter);
+                        } else {
+                            JOptionPane.showMessageDialog(this,
+                                    "Định dạng phải là yyyy hoặc yyyy-MM hoặc yyyy-MM-dd");
+                            return;
+                        }
+                    }
+                    break;
+            }
+
+            if (tuNgay == null || denNgay == null) {
+                JOptionPane.showMessageDialog(this, "Vui lòng chọn thời gian lọc.");
+                return;
+            }
+
+            LocalDate start = LocalDate.parse(tuNgay, formatter);
+            LocalDate end = LocalDate.parse(denNgay, formatter);
+
+            KhoNuocUongDAOImpl dao = new KhoNuocUongDAOImpl();
+            List<KhoNuocUong> allData = dao.findAll();
+            List<KhoNuocUong> filtered = new ArrayList<>();
+
+            for (KhoNuocUong kho : allData) {
+                LocalDate ngayNhapData = kho.getNgayNhap().toLocalDate();
+
+                boolean matchNgay = (!ngayNhapData.isBefore(start))
+                        && (ngayNhapData.isBefore(end.plusDays(1)));
+
+                if (matchNgay) {
+                    filtered.add(kho);
+                }
+            }
+
+            for (KhoNuocUong kho : filtered) {
+                model.addRow(new Object[]{
+                    kho.getMaKhoNuoc(),
+                    kho.getNuocUong() != null ? kho.getNuocUong().getTenNuocUong() : "",
+                    kho.getSoLuong(),
+                    kho.getDonViTinh(),
+                    kho.getGiaNhap(),
+                    kho.getNgayNhap()
+                });
+            }
+
+            if (filtered.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Không tìm thấy dữ liệu phù hợp.");
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi khi lọc dữ liệu: " + e.getMessage());
+        }
+    }
+
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
@@ -548,6 +791,12 @@ public class QuanLyKhoNuocUong extends javax.swing.JDialog {
         jScrollPane4 = new javax.swing.JScrollPane();
         tblXuatKho = new javax.swing.JTable();
         jLabel7 = new javax.swing.JLabel();
+        btnLoc = new javax.swing.JButton();
+        txtLocNhap = new javax.swing.JTextField();
+        cboLoc = new javax.swing.JComboBox<>();
+        btnLocNhap = new javax.swing.JButton();
+        cboLocNhap = new javax.swing.JComboBox<>();
+        txtLocXuat = new javax.swing.JTextField();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
         getContentPane().setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
@@ -595,8 +844,8 @@ public class QuanLyKhoNuocUong extends javax.swing.JDialog {
         getContentPane().add(btnNhapDoUong, new org.netbeans.lib.awtextra.AbsoluteConstraints(930, 140, 190, 30));
 
         jLabel2.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
-        jLabel2.setText("lịch sử xuất kho đồ uống");
-        getContentPane().add(jLabel2, new org.netbeans.lib.awtextra.AbsoluteConstraints(630, 380, 330, -1));
+        jLabel2.setText("Lịch Sử Xuất Kho Đồ Uống");
+        getContentPane().add(jLabel2, new org.netbeans.lib.awtextra.AbsoluteConstraints(630, 380, 190, -1));
         getContentPane().add(txtGiaNhapVao, new org.netbeans.lib.awtextra.AbsoluteConstraints(630, 140, 190, -1));
 
         tblChiTietNhapKho.setModel(new javax.swing.table.DefaultTableModel(
@@ -694,8 +943,32 @@ public class QuanLyKhoNuocUong extends javax.swing.JDialog {
         getContentPane().add(jScrollPane4, new org.netbeans.lib.awtextra.AbsoluteConstraints(630, 410, 530, 200));
 
         jLabel7.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
-        jLabel7.setText("lịch Sử Nhập Đồ Uống");
+        jLabel7.setText("Lịch Sử Nhập Kho Đồ Uống");
         getContentPane().add(jLabel7, new org.netbeans.lib.awtextra.AbsoluteConstraints(40, 380, 330, -1));
+
+        btnLoc.setText("Lọc");
+        btnLoc.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnLocActionPerformed(evt);
+            }
+        });
+        getContentPane().add(btnLoc, new org.netbeans.lib.awtextra.AbsoluteConstraints(1080, 380, -1, -1));
+        getContentPane().add(txtLocNhap, new org.netbeans.lib.awtextra.AbsoluteConstraints(320, 380, 110, -1));
+
+        cboLoc.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Hôm nay ", "Tuần này", "Tháng này", "Quý này", "Năm nay" }));
+        getContentPane().add(cboLoc, new org.netbeans.lib.awtextra.AbsoluteConstraints(980, 380, -1, -1));
+
+        btnLocNhap.setText("Lọc");
+        btnLocNhap.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnLocNhapActionPerformed(evt);
+            }
+        });
+        getContentPane().add(btnLocNhap, new org.netbeans.lib.awtextra.AbsoluteConstraints(530, 380, -1, -1));
+
+        cboLocNhap.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Hôm nay ", "Tuần này", "Tháng này", "Quý này", "Năm nay" }));
+        getContentPane().add(cboLocNhap, new org.netbeans.lib.awtextra.AbsoluteConstraints(430, 380, -1, -1));
+        getContentPane().add(txtLocXuat, new org.netbeans.lib.awtextra.AbsoluteConstraints(860, 380, 110, -1));
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
@@ -704,10 +977,24 @@ public class QuanLyKhoNuocUong extends javax.swing.JDialog {
         nhapKhoNuocUong();
     }//GEN-LAST:event_btnNhapDoUongActionPerformed
 
+    private void btnLocActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnLocActionPerformed
+        // TODO add your handling code here:
+        fillXuatKhoTheoLoc();
+    }//GEN-LAST:event_btnLocActionPerformed
+
+    private void btnLocNhapActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnLocNhapActionPerformed
+        // TODO add your handling code here:
+        fillNhapKhoTheoLoc();
+    }//GEN-LAST:event_btnLocNhapActionPerformed
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton btnLoc;
+    private javax.swing.JButton btnLocNhap;
     private javax.swing.JButton btnNhapDoUong;
     private javax.swing.JComboBox<String> cboLoaiDonVi;
+    private javax.swing.JComboBox<String> cboLoc;
+    private javax.swing.JComboBox<String> cboLocNhap;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
@@ -726,6 +1013,8 @@ public class QuanLyKhoNuocUong extends javax.swing.JDialog {
     private javax.swing.JTable tblDanhSachNhapKhoHomNay;
     private javax.swing.JTable tblXuatKho;
     private javax.swing.JTextField txtGiaNhapVao;
+    private javax.swing.JTextField txtLocNhap;
+    private javax.swing.JTextField txtLocXuat;
     private javax.swing.JTextField txtSoLuongNhap;
     // End of variables declaration//GEN-END:variables
 
