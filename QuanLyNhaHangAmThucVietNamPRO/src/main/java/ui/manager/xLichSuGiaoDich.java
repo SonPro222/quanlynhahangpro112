@@ -35,17 +35,19 @@ import javax.swing.table.JTableHeader;
  * @author KaiserAri
  */
 public class xLichSuGiaoDich extends javax.swing.JDialog {
-  private LichSuGiaoDichDAO lichSuGiaoDichDAO = new LichSuGiaoDichDAOImpl();
+
+    private LichSuGiaoDichDAO lichSuGiaoDichDAO = new LichSuGiaoDichDAOImpl();
+
     public xLichSuGiaoDich(java.awt.Frame parent, boolean modal) {
         super(parent, modal);
         initComponents();
         setTitle("Lịch sử giao dịch");
         setResizable(false);
         setLocationRelativeTo(null);
-         maunenBang(tblChiTietHoaDon);
+        maunenBang(tblChiTietHoaDon);
         maunenBang(tblLSHoaDon);
         fillTableHoaDon(); // <-- Gọi hàm fill bảng hóa đơn khi mở form
-       
+
         tblLSHoaDon.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
                 int selectedRow = tblLSHoaDon.getSelectedRow();
@@ -55,10 +57,8 @@ public class xLichSuGiaoDich extends javax.swing.JDialog {
                 }
             }
         });
-        
-    }
 
-  
+    }
 
     public void maunenBang(JTable table) {
         JTableHeader header = table.getTableHeader();
@@ -317,48 +317,48 @@ public class xLichSuGiaoDich extends javax.swing.JDialog {
     }// </editor-fold>//GEN-END:initComponents
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
-   String tuNgay = jTextField1.getText().trim(); // yyyy-MM-dd
-String denNgay = jTextField2.getText().trim(); // yyyy-MM-dd
+        String tuNgay = jTextField1.getText().trim(); // yyyy-MM-dd
+        String denNgay = jTextField2.getText().trim(); // yyyy-MM-dd
 
-List<LichSuGiaoDich> danhSachLoc = new ArrayList<>();
+        List<LichSuGiaoDich> danhSachLoc = new ArrayList<>();
 
-try {
-    // Kiểm tra nếu cả 2 trường ngày đều không rỗng
-    if (!tuNgay.isEmpty() && !denNgay.isEmpty()) {
-        SimpleDateFormat inputFormat = new SimpleDateFormat("yyyy-MM-dd");
-        inputFormat.setLenient(false); // không cho phép sai định dạng
+        try {
+            // Kiểm tra nếu cả 2 trường ngày đều không rỗng
+            if (!tuNgay.isEmpty() && !denNgay.isEmpty()) {
+                SimpleDateFormat inputFormat = new SimpleDateFormat("yyyy-MM-dd");
+                inputFormat.setLenient(false); // không cho phép sai định dạng
 
-        // Parse thử để chắc chắn chuỗi hợp lệ
-        Date fromDate = inputFormat.parse(tuNgay);
-        Date toDate = inputFormat.parse(denNgay);
+                // Parse thử để chắc chắn chuỗi hợp lệ
+                Date fromDate = inputFormat.parse(tuNgay);
+                Date toDate = inputFormat.parse(denNgay);
 
-        // Gọi DAO nếu hợp lệ
-        danhSachLoc = lichSuGiaoDichDAO.locHoaDonTheoNgay(tuNgay, denNgay);
-    } else {
-        JOptionPane.showMessageDialog(this, "Vui lòng nhập đầy đủ cả TỪ NGÀY và ĐẾN NGÀY để lọc.");
-        return;
-    }
-} catch (ParseException e) {
-    JOptionPane.showMessageDialog(this, "Định dạng ngày không hợp lệ. Vui lòng nhập theo định dạng yyyy-MM-dd.");
-    e.printStackTrace();
-    return;
-}
+                // Gọi DAO nếu hợp lệ
+                danhSachLoc = lichSuGiaoDichDAO.locHoaDonTheoNgay(tuNgay, denNgay);
+            } else {
+                JOptionPane.showMessageDialog(this, "Vui lòng nhập đầy đủ cả TỪ NGÀY và ĐẾN NGÀY để lọc.");
+                return;
+            }
+        } catch (ParseException e) {
+            JOptionPane.showMessageDialog(this, "Định dạng ngày không hợp lệ. Vui lòng nhập theo định dạng yyyy-MM-dd.");
+            e.printStackTrace();
+            return;
+        }
 
 // Đổ kết quả vào bảng
-DefaultTableModel model = (DefaultTableModel) tblLSHoaDon.getModel();
-model.setRowCount(0);
+        DefaultTableModel model = (DefaultTableModel) tblLSHoaDon.getModel();
+        model.setRowCount(0);
 
-SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
-for (LichSuGiaoDich hd : danhSachLoc) {
-    model.addRow(new Object[]{
-        hd.getMaHD(),
-        sdf.format(hd.getNgayLap()),
-        hd.getTrangThai(),
-        hd.getTenNhanVien(),
-        hd.getTenBan(),
-        hd.getTongTien()
-    });
-}
+        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
+        for (LichSuGiaoDich hd : danhSachLoc) {
+            model.addRow(new Object[]{
+                hd.getMaHD(),
+                sdf.format(hd.getNgayLap()),
+                hd.getTrangThai(),
+                hd.getTenNhanVien(),
+                hd.getTenBan(),
+                hd.getTongTien()
+            });
+        }
 
     }//GEN-LAST:event_jButton1ActionPerformed
 
@@ -371,9 +371,8 @@ for (LichSuGiaoDich hd : danhSachLoc) {
         switch (selected) {
             case "Hôm nay":
                 tuNgay = today.format(formatter);
-                denNgay = today.plusDays(1).format(formatter);
+                denNgay = today.plusDays(1).format(formatter); // end = ngày mai
                 break;
-
             case "Tuần này":
                 LocalDate monday = today.with(DayOfWeek.MONDAY);
                 LocalDate sunday = today.with(DayOfWeek.SUNDAY);
