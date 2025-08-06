@@ -21,5 +21,5 @@ public class TaiKhoan {
 private String tendangnhap;
 private String matkhau;
 private String vaitro;
-private int maNV;
+private Integer maNV;
 }

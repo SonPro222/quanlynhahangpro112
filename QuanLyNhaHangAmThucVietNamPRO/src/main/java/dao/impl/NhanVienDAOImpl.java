@@ -15,7 +15,8 @@ import util.XQuery;
 
 public class NhanVienDAOImpl implements NhanVienDAO {
     final String INSERT_SQL = "INSERT INTO NHANVIEN (TenNV, SDT, ChucVu, Luong, SoNgayLam, SoNgayNghi) VALUES (?, ?, ?, ?, ?,  ?)";
-    final String UPDATE_SQL = "UPDATE NHANVIEN SET TenNV = ?, SDT = ?, ChucVu = ?, Luong = ?, SoNgayLam = ?, SoNgayNghi = ?,  WHERE MaNV = ?";
+    final String UPDATE_SQL = "UPDATE NHANVIEN SET TenNnNV, SDT, ChucVu, Luong, SoNgayLam, SoNgayNghi) VALUES (?, ?, ?, ?, ?,  ?)\";\n" +
+"    final String UPDATE_SQL = \"UPDATE NHANVIEN SV = ?, SDT = ?, ChucVu = ?, Luong = ?, SoNgayLam = ?, SoNgayNghi = ?,  WHERE MaNV = ?";
     final String SELECT_ALL_SQL = "SELECT * FROM NHANVIEN";
     final String SELECT_BY_ID_SQL = "SELECT * FROM NHANVIEN WHERE MaNV = ?";
     @Override

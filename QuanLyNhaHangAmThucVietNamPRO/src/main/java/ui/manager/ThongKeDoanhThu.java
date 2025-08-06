@@ -5,6 +5,10 @@ import dao.impl.DoanhThuDAOImpl;
 import entity.DoanhThu;
 import java.awt.*;
 import java.awt.event.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.Timestamp;
 import java.text.DecimalFormat;
 import java.util.Date;
 import java.util.List;
@@ -12,15 +16,19 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 import util.ExcelExporter;
+import util.XJdbc;
+import uui.Auth;
 
 public class ThongKeDoanhThu extends JDialog {
 
     private JTable tblDoanhThu;
     private JLabel lblTongThu, lblTongChi, lblLoiNhuan;
-    private JComboBox<String> cboThang, cboNam;
+    private JComboBox<String> cboThang, cboNam, cboNhanVien;
     private JButton btnLoc, btnXuatExcel, btnThemThuCong;
     private JButton btnCapNhat;
     private DoanhThuDAO doanhThuDAO = new DoanhThuDAOImpl();
+        private JButton btnTaiDuLieu;
+
 
     public ThongKeDoanhThu(Frame parent, boolean modal) {
         super(parent, modal);
@@ -30,7 +38,7 @@ public class ThongKeDoanhThu extends JDialog {
 
         initComponents();
         fillComboBox();
-        loadTableData(null, null);
+        loadTableData(null, null, null);
          maunenBang(tblDoanhThu);
     }
     public void maunenBang(JTable table) {
@@ -63,10 +71,13 @@ public class ThongKeDoanhThu extends JDialog {
         JPanel pnlTop = new JPanel(new FlowLayout());
         cboThang = new JComboBox<>();
         cboNam = new JComboBox<>();
+        cboNhanVien = new JComboBox<>();
         btnLoc = new JButton("Lọc");
         btnXuatExcel = new JButton("Xuất Excel");
         btnThemThuCong = new JButton("Thêm thủ công");
 
+        pnlTop.add(new JLabel("Nhân Viên:"));
+        pnlTop.add(cboNhanVien);      
         pnlTop.add(new JLabel("Tháng:"));
         pnlTop.add(cboThang);
         pnlTop.add(new JLabel("Năm:"));
@@ -79,7 +90,7 @@ public class ThongKeDoanhThu extends JDialog {
         // Table
         tblDoanhThu = new JTable();
         tblDoanhThu.setModel(new DefaultTableModel(
-                new Object[]{"Ngày", "Tổng Thu", "Tổng Chi", "Lợi Nhuận"}, 0
+                new Object[]{"Ngày","Nhân Viên","Tổng Thu", "Tổng Chi", "Lợi Nhuận"}, 0
         ));
         add(new JScrollPane(tblDoanhThu), BorderLayout.CENTER);
 
@@ -101,6 +112,7 @@ public class ThongKeDoanhThu extends JDialog {
         lblLoiNhuan.setFont(fontLon);
 
         // Events
+        btnTaiDuLieu = new JButton("Tải dữ liệu");
         btnLoc.addActionListener(e -> locDoanhThu());
         btnXuatExcel.addActionListener(e -> xuatExcel());
         btnThemThuCong.addActionListener(e -> themDoanhThuThuCong());
@@ -124,10 +136,26 @@ public class ThongKeDoanhThu extends JDialog {
         for (int y = 2023; y <= 2030; y++) {
             cboNam.addItem(String.valueOf(y));
         }
+        cboNhanVien.removeAllItems();
+        cboNhanVien.addItem("Tất cả");
+        String sql = "SELECT TENDANGNHAP FROM TaiKhoan";
+        try (
+            Connection con = XJdbc.getConnection();
+            PreparedStatement ps = con.prepareStatement(sql);
+            ResultSet rs = ps.executeQuery();
+        ) {
+            while (rs.next()) {
+                cboNhanVien.addItem(rs.getString("TENDANGNHAP"));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
-    private void loadTableData(Integer thang, Integer nam) {
-        List<DoanhThu> list = doanhThuDAO.findByMonthYear(thang, nam);
+    private void loadTableData(Integer thang, Integer nam,String TENDANGNHAP) {
+        int maNV = Auth.nhanVienDangNhap.getMaNV();
+
+        List<DoanhThu> list = doanhThuDAO.findByMonthYearAndNhanVien(thang, nam, TENDANGNHAP);
         DefaultTableModel model = (DefaultTableModel) tblDoanhThu.getModel();
         model.setRowCount(0);
 
@@ -139,6 +167,8 @@ public class ThongKeDoanhThu extends JDialog {
             tongChi += dt.getTongChi();
             model.addRow(new Object[]{
                 dt.getNgay(),
+                dt.getTENDANGNHAP(), // Thêm tên nhân viên
+
                 df.format(dt.getTongThu()) + " VND",
                 df.format(dt.getTongChi()) + " VND",
                 df.format(dt.getTongThu() - dt.getTongChi()) + " VND"
@@ -153,7 +183,8 @@ public class ThongKeDoanhThu extends JDialog {
     private void locDoanhThu() {
         Integer thang = cboThang.getSelectedIndex() == 0 ? null : cboThang.getSelectedIndex();
         Integer nam = cboNam.getSelectedIndex() == 0 ? null : Integer.parseInt((String) cboNam.getSelectedItem());
-        loadTableData(thang, nam);
+        String TENDANGNHAP = cboNhanVien.getSelectedIndex() == 0 ? null : (String) cboNhanVien.getSelectedItem();
+        loadTableData(thang, nam, TENDANGNHAP);
     }
 
     private void themDoanhThuThuCong() {
@@ -181,5 +212,50 @@ public class ThongKeDoanhThu extends JDialog {
             JOptionPane.showMessageDialog(this, "Lỗi xuất Excel: " + e.getMessage());
         }
     }
+    
+    public void loadDoanhThuTheoNhanVien() {
+        DefaultTableModel model = (DefaultTableModel) tblDoanhThu.getModel();
+        model.setRowCount(0); // Xóa dữ liệu cũ
+
+        String sql = "SELECT hd.MaHD, hd.NgayLap, hd.TongTien, tk.TENDANGNHAP " +
+                     "FROM HoaDon hd " +
+                     "JOIN TaiKhoan tk ON hd.MaNV= tk.MaNV " +
+                     "ORDER BY hd.NgayLap DESC";
+
+        try (
+            Connection con = XJdbc.getConnection();
+            PreparedStatement ps = con.prepareStatement(sql);
+            ResultSet rs = ps.executeQuery();
+        ) {
+            while (rs.next()) {
+                int maHD = rs.getInt("MaHD");
+                Timestamp ngayLap = rs.getTimestamp("NgayLap");
+                double tongTien = rs.getDouble("TongTien");
+                String TENDANGNHAP = rs.getString("TENDANGNHAP");
+
+                model.addRow(new Object[]{maHD, ngayLap, tongTien, TENDANGNHAP});
+            }
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Lỗi khi tải dữ liệu: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+//    private void loadNhanVienToComboBox() {
+//        cboNhanVien.removeAllItems();
+//        cboNhanVien.addItem("Tất cả");
+//        String sql = "SELECT TENDANGNHAP FROM NhanVien";
+//        try (
+//            Connection con = XJdbc.getConnection();
+//            PreparedStatement ps = con.prepareStatement(sql);
+//            ResultSet rs = ps.executeQuery();
+//        ) {
+//            while (rs.next()) {
+//                cboNhanVien.addItem(rs.getString("TENDANGNHAP"));
+//            }
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+//    }
+    
 
 }

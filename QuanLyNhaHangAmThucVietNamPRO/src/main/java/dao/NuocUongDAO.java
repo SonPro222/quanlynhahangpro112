@@ -19,6 +19,8 @@ public interface NuocUongDAO {
     void insert(NuocUong nuoc);
     void update(NuocUong nuoc);
     void delete(int id);
+    NuocUong create(NuocUong nuoc);
     public NuocUong findByTenNuoc(String tenNuoc);
      NuocUong findById(int maNuocUong);
+     
 }

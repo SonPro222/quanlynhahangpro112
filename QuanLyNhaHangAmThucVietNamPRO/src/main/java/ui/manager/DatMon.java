@@ -802,16 +802,20 @@ private void themMonVaoBangDaChon() {
 
     private void capNhatTongTienHoaDon() {
         DefaultTableModel model = (DefaultTableModel) tblHoaDon.getModel();
+        int ma = Integer.parseInt(txtMaHD.getText());
         double tongTien = 0;
         DecimalFormat df = new DecimalFormat("#,###");
-
-        for (int i = 0; i < model.getRowCount(); i++) {
-            Object ttObj = model.getValueAt(i, 5); // Thành tiền
-            if (ttObj instanceof Number) {
-                tongTien += ((Number) ttObj).doubleValue();
-            }
-        }
-        lblTongTien.setText("TỔNG TIỀN: " + df.format(tongTien) + " VNĐ");
+        HoaDonDAO hd = new HoaDonDAOImpl();
+        HoaDon hdd = hd.findById(ma);
+        double tongtien = hdd.getTongTien();
+       
+//        for (int i = 0; i < model.getRowCount(); i++) {
+//            Object ttObj = model.getValueAt(i, 5); // Thành tiền
+//            if (ttObj instanceof Number) {
+//                tongTien += ((Number) ttObj).doubleValue();
+//            }
+//        }
+        lblTongTien.setText("TỔNG TIỀN: " + df.format(tongtien) + " VNĐ");
     }
 
     private void lamMoiBangMonAn() {

@@ -17,4 +17,6 @@ public interface LoaiNuocUongDAO {
     void insert(LoaiNuocUong loai);
     void update(LoaiNuocUong loai);
     void delete(int id);
+    LoaiNuocUong create(LoaiNuocUong loai);
+    public LoaiNuocUong findByTen(String tenLoai);
 }

@@ -125,7 +125,7 @@ public List<DoanhThu> findByDateRange(Date from, Date to) {
         DoanhThu existing = findByDate(dt.getNgay());
         if (existing == null) {
             // Insert
-            String sql = "INSERT INTO THONGKEDOANHTHU (Ngay, TongThu, TongChi, GhiChu) VALUES (?, ?, ?, ?)";
+            String sql = "INSERT INTO THONGKEDOANHTHU (Ngay, TENDANGNHAP, TongThu, TongChi, GhiChu) VALUES (?,?,?, ?, ?)";
             XJdbc.update(sql, dt.getNgay(), dt.getTongThu(), dt.getTongChi(), dt.getGhiChu());
         } else {
             // Update
@@ -134,6 +134,7 @@ public List<DoanhThu> findByDateRange(Date from, Date to) {
         }
     }
 
+    @Override
     public DoanhThu findByDate(java.util.Date date) {
         String sql = "SELECT * FROM THONGKEDOANHTHU WHERE Ngay = ?";
         try (Connection con = XJdbc.getConnection();
@@ -158,28 +159,6 @@ public List<DoanhThu> findByDateRange(Date from, Date to) {
         return null;
     }
 
-    @Override
-    public DoanhThu findByDate(java.sql.Date date) {
-        String sql = "SELECT * FROM THONGKEDOANHTHU WHERE Ngay = ?";
-        try (Connection con = XJdbc.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-
-            ps.setDate(1, date);
-            ResultSet rs = ps.executeQuery();
-            if (rs.next()) {
-                DoanhThu dt = new DoanhThu();
-                dt.setMaDT(rs.getInt("MaDT"));
-                dt.setNgay(rs.getDate("Ngay"));
-                dt.setTongThu(rs.getDouble("TongThu"));
-                dt.setTongChi(rs.getDouble("TongChi"));
-                dt.setGhiChu(rs.getString("GhiChu"));
-                return dt;
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
 
     @Override
     public List<DoanhThu> findByMonthYear(Integer thang, Integer nam) {
@@ -231,4 +210,76 @@ public List<DoanhThu> findByDateRange(Date from, Date to) {
             e.printStackTrace();
         }
     }
+   @Override
+public List<DoanhThu> findByMonthYearAndNhanVien(Integer thang, Integer nam, String TENDANGNHAP) {
+    List<DoanhThu> list = new ArrayList<>();
+
+    String sql = """
+        SELECT 
+            CAST(hd.NgayLap AS DATE) AS Ngay,
+            tk.TENDANGNHAP,
+            SUM(hd.TongTien) AS TongThu,
+            ISNULL(tc.TongChi, 0) AS TongChi
+        FROM HOADON hd
+        JOIN TaiKhoan tk ON hd.MaNV = tk.MaNV
+        LEFT JOIN (
+            SELECT Ngay, SUM(SoTien) AS TongChi
+            FROM CHITIEU
+            GROUP BY Ngay
+        ) tc ON CAST(hd.NgayLap AS DATE) = tc.Ngay
+        WHERE hd.TrangThai = N'Đã thanh toán'
+    """;
+
+    StringBuilder where = new StringBuilder();
+    List<Object> params = new ArrayList<>();
+
+    if (thang != null) {
+        where.append(" AND MONTH(hd.NgayLap) = ?");
+        params.add(thang);
+    }
+
+    if (nam != null) {
+        where.append(" AND YEAR(hd.NgayLap) = ?");
+        params.add(nam);
+    }
+
+    if (TENDANGNHAP != null && !TENDANGNHAP.trim().isEmpty()) {
+        where.append(" AND tk.TENDANGNHAP = ?");
+        params.add(TENDANGNHAP);
+    }
+
+    sql += where.toString() + " GROUP BY CAST(hd.NgayLap AS DATE), tk.TENDANGNHAP, tc.TongChi ORDER BY Ngay DESC";
+
+    try (Connection con = XJdbc.getConnection();
+         PreparedStatement ps = con.prepareStatement(sql)) {
+
+        for (int i = 0; i < params.size(); i++) {
+            ps.setObject(i + 1, params.get(i));
+        }
+
+        ResultSet rs = ps.executeQuery();
+        while (rs.next()) {
+            DoanhThu dt = new DoanhThu();
+            dt.setNgay(rs.getDate("Ngay"));
+            dt.setTENDANGNHAP(rs.getString("TENDANGNHAP"));
+            dt.setTongThu(rs.getDouble("TongThu"));
+            dt.setTongChi(rs.getDouble("TongChi"));
+            
+            list.add(dt);
+        }
+
+    } catch (Exception e) {
+        e.printStackTrace();
+    }
+
+    return list;
+}
+
+    @Override
+    public DoanhThu findByDate(Date date) {
+        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    }
+
+    
+
 }

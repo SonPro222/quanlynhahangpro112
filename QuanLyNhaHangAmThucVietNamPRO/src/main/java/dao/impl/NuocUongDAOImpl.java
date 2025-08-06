@@ -98,8 +98,9 @@ public class NuocUongDAOImpl implements NuocUongDAO {
             ps.setString(2, nuoc.getTenNuocUong());
             ps.setDouble(3, nuoc.getGiaBan());
             ps.setString(4, nuoc.getHinhAnh());
-            ps.setInt(5, nuoc.getMaNuocUong());
-            ps.setString(6, nuoc.getDonViTinh());
+            ps.setString(5, nuoc.getDonViTinh());
+            ps.setInt(6, nuoc.getMaNuocUong());
+            
             ps.executeUpdate();
         } catch (Exception e) {
             e.printStackTrace();
@@ -117,6 +118,20 @@ public class NuocUongDAOImpl implements NuocUongDAO {
         }
     }
 
+    public NuocUong create(NuocUong nuoc) {
+        String sql = "INSERT INTO NuocUong (TenNuocUong, GiaBan,HinhAnh, MaNuocUong) VALUES (?, ?, ?, ?)";
+        try (Connection conn = XJdbc.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, nuoc.getTenNuocUong());
+            ps.setDouble(2, nuoc.getGiaBan());
+            ps.setString(3, nuoc.getHinhAnh());
+
+            ps.setInt(4, nuoc.getMaNuocUong());
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return nuoc;
+    }
     public NuocUong findByTenNuoc(String tenNuoc) {
         String sql = "SELECT * FROM NuocUong WHERE TenNuocUong = ?";
         try (Connection con = XJdbc.getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {

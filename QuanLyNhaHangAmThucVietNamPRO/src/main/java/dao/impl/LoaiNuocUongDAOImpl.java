@@ -6,9 +6,12 @@ package dao.impl;
 
 import dao.LoaiNuocUongDAO;
 import entity.LoaiNuocUong;
+import entity.MonAn;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import util.XJdbc;
@@ -100,6 +103,44 @@ import util.XJdbc;
             e.printStackTrace();
         }
     }
+    
+    @Override
+    public LoaiNuocUong create(LoaiNuocUong loai) {
+        String sql = "INSERT INTO LoaiNuocUong (TenLoai, HinhAnh) VALUES (?, ?)";
+        try (Connection conn = XJdbc.getConnection(); 
+             PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            ps.setString(1, loai.getTenLoai());
+            ps.setString(2, loai.getHinhAnh());
+            ps.executeUpdate();
+            try (ResultSet rs = ps.getGeneratedKeys()) {
+                if (rs.next()) {
+                    loai.setMaLoaiNuoc(rs.getInt(1));
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return loai;
+    }
+    @Override
+public LoaiNuocUong findByTen(String tenLoai) {
+    String sql = "SELECT * FROM LoaiNuocUong WHERE TenLoai = ?";
+    try (Connection conn = XJdbc.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+        ps.setString(1, tenLoai);
+        try (ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                LoaiNuocUong nuoc = new LoaiNuocUong();
+                nuoc.setMaLoaiNuoc(rs.getInt("MaLoaiNuoc"));
+                nuoc.setTenLoai(rs.getString("TenLoai"));
+                nuoc.setHinhAnh(rs.getString("HinhAnh"));
+                return nuoc;
+            }
+        }
+    } catch (SQLException e) {
+        e.printStackTrace();
+    }
+    return null;
+}
 }
 
 
