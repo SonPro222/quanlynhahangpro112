@@ -12,7 +12,7 @@ import java.util.List;
 public interface CrudDAO<T, ID> {
     T create(T entity);
     void update(T entity);
-    void deleteById(ID id);
+    void deleteById(ID TENDANGNHAP);
     List<T> findAll();
     List<ChiTietMonAn> findAllWithMonAn();
     T findById(ID id);

@@ -213,33 +213,33 @@ public class ThongKeDoanhThu extends JDialog {
         }
     }
     
-    public void loadDoanhThuTheoNhanVien() {
-        DefaultTableModel model = (DefaultTableModel) tblDoanhThu.getModel();
-        model.setRowCount(0); // Xóa dữ liệu cũ
-
-        String sql = "SELECT hd.MaHD, hd.NgayLap, hd.TongTien, tk.TENDANGNHAP " +
-                     "FROM HoaDon hd " +
-                     "JOIN TaiKhoan tk ON hd.MaNV= tk.MaNV " +
-                     "ORDER BY hd.NgayLap DESC";
-
-        try (
-            Connection con = XJdbc.getConnection();
-            PreparedStatement ps = con.prepareStatement(sql);
-            ResultSet rs = ps.executeQuery();
-        ) {
-            while (rs.next()) {
-                int maHD = rs.getInt("MaHD");
-                Timestamp ngayLap = rs.getTimestamp("NgayLap");
-                double tongTien = rs.getDouble("TongTien");
-                String TENDANGNHAP = rs.getString("TENDANGNHAP");
-
-                model.addRow(new Object[]{maHD, ngayLap, tongTien, TENDANGNHAP});
-            }
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Lỗi khi tải dữ liệu: " + e.getMessage());
-            e.printStackTrace();
-        }
-    }
+//    public void loadDoanhThuTheoNhanVien() {
+//        DefaultTableModel model = (DefaultTableModel) tblDoanhThu.getModel();
+//        model.setRowCount(0); // Xóa dữ liệu cũ
+//
+//        String sql = "SELECT hd.MaHD, hd.NgayLap, hd.TongTien, tk.TENDANGNHAP " +
+//                     "FROM HoaDon hd " +
+//                     "JOIN TaiKhoan tk ON hd.MaNV= tk.MaNV " +
+//                     "ORDER BY hd.NgayLap DESC";
+//
+//        try (
+//            Connection con = XJdbc.getConnection();
+//            PreparedStatement ps = con.prepareStatement(sql);
+//            ResultSet rs = ps.executeQuery();
+//        ) {
+//            while (rs.next()) {
+//                int maHD = rs.getInt("MaHD");
+//                Timestamp ngayLap = rs.getTimestamp("NgayLap");
+//                double tongTien = rs.getDouble("TongTien");
+//                String TENDANGNHAP = rs.getString("TENDANGNHAP");
+//
+//                model.addRow(new Object[]{maHD, ngayLap, tongTien, TENDANGNHAP});
+//            }
+//        } catch (Exception e) {
+//            JOptionPane.showMessageDialog(this, "Lỗi khi tải dữ liệu: " + e.getMessage());
+//            e.printStackTrace();
+//        }
+//    }
 //    private void loadNhanVienToComboBox() {
 //        cboNhanVien.removeAllItems();
 //        cboNhanVien.addItem("Tất cả");

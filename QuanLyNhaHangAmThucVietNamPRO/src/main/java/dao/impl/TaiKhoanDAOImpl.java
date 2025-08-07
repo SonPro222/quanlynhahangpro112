@@ -98,4 +98,6 @@ public void deleteByMaNV(int maNV) {
     XJdbc.executeUpdate(sql, maNV);
 }
 
+   
+
 }

@@ -159,7 +159,7 @@ public class QuanLyTaiKhoan extends javax.swing.JDialog {
         }
 
         String username = tblTaiKhoan.getValueAt(row, 0).toString(); // Cột 0 là TENDANGNHAP
-
+        
         int confirm = JOptionPane.showConfirmDialog(
                 this,
                 "Bạn có chắc muốn xóa tài khoản: " + username + " không?",
@@ -168,11 +168,14 @@ public class QuanLyTaiKhoan extends javax.swing.JDialog {
         );
 
         if (confirm == JOptionPane.YES_OPTION) {
+ try {
             TaiKhoanDAO dao = new TaiKhoanDAOImpl();
             dao.deleteById(username);
             JOptionPane.showMessageDialog(this, "Đã xóa tài khoản thành công!");
-
             fillToTable(); // load lại bảng sau khi xóa
+            } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Xóa thất bại: " + e.getMessage());
+        }
         }
     }
 
